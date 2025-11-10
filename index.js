@@ -35,10 +35,20 @@ async function run() {
     const db = client.db("finEase-DB");
     const expenseCollection = db.collection("expenses");
 
-    app.get("/my-transactions", async (req, res) => {
+    app.get("/transactions", async (req, res) => {
       const result = await expenseCollection.find().toArray();
 
       res.send(result);
+    });
+
+    app.post("/transactions", async (req, res) => {
+      const data = req.body;
+      console.log(data);
+      const result = await expenseCollection.insertOne(data);
+      res.send({
+        success: true,
+        result,
+      });
     });
 
     // Send a ping to confirm a successful connection
