@@ -86,7 +86,7 @@ async function run() {
           description,
           category,
           amount: parseFloat(amount),
-          createdAt: date ? new Date(date) : new Date(),
+          createdAt: date ? new Date() : new Date(),
         };
 
         const result = await expenseCollection.insertOne(transaction);
