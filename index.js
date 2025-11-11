@@ -1,6 +1,6 @@
 const express = require("express");
 var cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = 3000;
 
@@ -35,16 +35,30 @@ async function run() {
     const db = client.db("finEase-DB");
     const expenseCollection = db.collection("expenses");
 
+    // view all data
     app.get("/transactions", async (req, res) => {
       const result = await expenseCollection.find().toArray();
 
       res.send(result);
     });
 
+    // add data to the database
     app.post("/transactions", async (req, res) => {
       const data = req.body;
       console.log(data);
       const result = await expenseCollection.insertOne(data);
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
+    // view single data
+    app.get("/transactions/:id", async (req, res) => {
+      const { id } = req.params;
+      // console.log(id);
+      const result = await expenseCollection.findOne({ _id: new ObjectId(id) });
+
       res.send({
         success: true,
         result,
