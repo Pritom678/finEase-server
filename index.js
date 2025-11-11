@@ -65,6 +65,27 @@ async function run() {
       });
     });
 
+    //update single data
+
+    app.put('/transactions/:id', async (req, res)=>{
+      const { id } = req.params;
+      const data = req.body
+      console.log(data);
+      // console.log(id);
+      const objectId = new ObjectId(id);
+      const filter = { _id: objectId };
+      const update = {
+        $set: data,
+      };
+
+      const result = await expenseCollection.updateOne(filter, update);
+
+      res.send({
+        success: true,
+        result
+      })
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
