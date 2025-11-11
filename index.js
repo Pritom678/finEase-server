@@ -1,6 +1,7 @@
 const express = require("express");
 var cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+require("dotenv").config();
 const app = express();
 const port = 3000;
 
@@ -15,8 +16,7 @@ app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
 
-const uri =
-  "mongodb+srv://finEaseDB:9RpYIJNbrVNtaB26@cluster0.rzdhq8l.mongodb.net/?appName=Cluster0";
+const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.rzdhq8l.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -77,7 +77,8 @@ async function run() {
     // add data to the database
     app.post("/transactions", async (req, res) => {
       try {
-        const { name, email, type,description, category, amount, date } = req.body;
+        const { name, email, type, description, category, amount, date } =
+          req.body;
 
         const transaction = {
           name,
