@@ -144,6 +144,51 @@ async function run() {
       }
     });
 
+    //charts data
+
+    app.get("/report", async (req, res) => {
+  try {
+    const email = req.query.email;
+    if (!email) {
+      return res.status(400).send({ success: false, message: "Email required" });
+    }
+
+    const transactions = await expenseCollection.find({ email }).toArray();
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    const categoryTotals = {};
+
+    transactions.forEach((t) => {
+      const amount = Number(t.amount);
+
+      if (t.type.toLowerCase() === "income") {
+        totalIncome += amount;
+      } else if (t.type.toLowerCase() === "expense") {
+        totalExpense += amount;
+        categoryTotals[t.category] = (categoryTotals[t.category] || 0) + amount;
+      }
+    });
+
+    const netBalance = totalIncome - totalExpense;
+
+    const chartData = Object.keys(categoryTotals).map((category) => ({
+      category,
+      amount: categoryTotals[category],
+    }));
+
+    res.send({
+      success: true,
+      summary: { totalIncome, totalExpense, netBalance },
+      categoryData: chartData,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ success: false, message: "Server error" });
+  }
+});
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
