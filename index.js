@@ -37,20 +37,64 @@ async function run() {
 
     // view all data
     app.get("/transactions", async (req, res) => {
-      const result = await expenseCollection.find().toArray();
+      try {
+        const { email, sortBy = "date", order = "desc" } = req.query;
 
-      res.send(result);
+        if (!email) {
+          return res
+            .status(400)
+            .send({ success: false, message: "Email required" });
+        }
+
+        const transactions = await expenseCollection.find({ email }).toArray();
+
+        const fixedTransactions = transactions.map((t) => ({
+          ...t,
+          amount: parseFloat(t.amount),
+          createdAt: new Date(t.createdAt),
+        }));
+
+        fixedTransactions.sort((a, b) => {
+          if (sortBy === "amount") {
+            return order === "asc" ? a.amount - b.amount : b.amount - a.amount;
+          } else {
+            return order === "asc"
+              ? new Date(a.createdAt) - new Date(b.createdAt)
+              : new Date(b.createdAt) - new Date(a.createdAt);
+          }
+        });
+
+        res.send({
+          success: true,
+          fixedTransactions,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ success: false, message: "Server error" });
+      }
     });
 
     // add data to the database
     app.post("/transactions", async (req, res) => {
-      const data = req.body;
-      console.log(data);
-      const result = await expenseCollection.insertOne(data);
-      res.send({
-        success: true,
-        result,
-      });
+      try {
+        const { name, email, type,description, category, amount, date } = req.body;
+
+        const transaction = {
+          name,
+          email,
+          type,
+          description,
+          category,
+          amount: parseFloat(amount),
+          createdAt: date ? new Date(date) : new Date(),
+        };
+
+        const result = await expenseCollection.insertOne(transaction);
+        res.send({ success: true, result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ success: false, message: "Server error" });
+      }
     });
 
     // view single data
@@ -147,47 +191,49 @@ async function run() {
     //charts data
 
     app.get("/report", async (req, res) => {
-  try {
-    const email = req.query.email;
-    if (!email) {
-      return res.status(400).send({ success: false, message: "Email required" });
-    }
+      try {
+        const email = req.query.email;
+        if (!email) {
+          return res
+            .status(400)
+            .send({ success: false, message: "Email required" });
+        }
 
-    const transactions = await expenseCollection.find({ email }).toArray();
+        const transactions = await expenseCollection.find({ email }).toArray();
 
-    let totalIncome = 0;
-    let totalExpense = 0;
-    const categoryTotals = {};
+        let totalIncome = 0;
+        let totalExpense = 0;
+        const categoryTotals = {};
 
-    transactions.forEach((t) => {
-      const amount = Number(t.amount);
+        transactions.forEach((t) => {
+          const amount = Number(t.amount);
 
-      if (t.type.toLowerCase() === "income") {
-        totalIncome += amount;
-      } else if (t.type.toLowerCase() === "expense") {
-        totalExpense += amount;
-        categoryTotals[t.category] = (categoryTotals[t.category] || 0) + amount;
+          if (t.type.toLowerCase() === "income") {
+            totalIncome += amount;
+          } else if (t.type.toLowerCase() === "expense") {
+            totalExpense += amount;
+            categoryTotals[t.category] =
+              (categoryTotals[t.category] || 0) + amount;
+          }
+        });
+
+        const netBalance = totalIncome - totalExpense;
+
+        const chartData = Object.keys(categoryTotals).map((category) => ({
+          category,
+          amount: categoryTotals[category],
+        }));
+
+        res.send({
+          success: true,
+          summary: { totalIncome, totalExpense, netBalance },
+          categoryData: chartData,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ success: false, message: "Server error" });
       }
     });
-
-    const netBalance = totalIncome - totalExpense;
-
-    const chartData = Object.keys(categoryTotals).map((category) => ({
-      category,
-      amount: categoryTotals[category],
-    }));
-
-    res.send({
-      success: true,
-      summary: { totalIncome, totalExpense, netBalance },
-      categoryData: chartData,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send({ success: false, message: "Server error" });
-  }
-});
-
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
