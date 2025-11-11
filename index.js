@@ -67,9 +67,9 @@ async function run() {
 
     //update single data
 
-    app.put('/transactions/:id', async (req, res)=>{
+    app.put("/transactions/:id", async (req, res) => {
       const { id } = req.params;
-      const data = req.body
+      const data = req.body;
       console.log(data);
       // console.log(id);
       const objectId = new ObjectId(id);
@@ -82,9 +82,67 @@ async function run() {
 
       res.send({
         success: true,
-        result
-      })
-    })
+        result,
+      });
+    });
+
+    //delete api
+
+    app.delete("/transactions/:id", async (req, res) => {
+      const { id } = req.params;
+      const objectId = new ObjectId(id);
+      const filter = { _id: objectId };
+
+      const result = await expenseCollection.deleteOne(filter);
+
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
+    // overview total balance
+
+    app.get("/overview", async (req, res) => {
+      try {
+        const email = req.query.email;
+        if (!email) {
+          return res
+            .status(400)
+            .send({ success: false, message: "Email required" });
+        }
+
+        const transactions = await expenseCollection.find({ email }).toArray();
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        transactions.forEach((t) => {
+          const type = t.type?.toLowerCase();
+          const amount = Number(t.amount) || 0;
+
+          if (type === "income") {
+            totalIncome += amount;
+          } else if (type === "expense") {
+            totalExpense += amount;
+          }
+        });
+
+        const balance = totalIncome - totalExpense;
+
+        res.send({
+          success: true,
+          overview: {
+            totalIncome,
+            totalExpense,
+            balance,
+          },
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ success: false, message: "Server error" });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
