@@ -33,7 +33,7 @@ async function run() {
     // await client.connect();
 
     const db = client.db("finEase-DB");
-    const expenseCollection = db.collection("expense");
+    const expenseCollection = db.collection("expenses");
 
     // view all data
     app.get("/transactions", async (req, res) => {
